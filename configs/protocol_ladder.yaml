@@ -82,3 +82,4 @@ run_log:   # one line per executed run; a rerun is only allowed to fix a failed 
   A: "executed once to completion (10 seeds x 5 folds x M1, M2, M3; 150 prediction files; 1,691 s on one GPU), no reruns; output hashes in results_manifest_runA.txt"
   C: "executed once to completion (10 seeds x 5 folds x M1, M2, M3; 150 prediction files; 2,631 s on one GPU), no reruns; output hashes in results_manifest_runC.txt"
   C2: "executed once to completion (10 seeds x 5 folds x M1, M2, M3; 150 prediction files; 2,222 s on one GPU), no reruns; output hashes in results_manifest_runC2.txt"
+  leak_audit: "kernel-propagation baselines with kernels built from ALL known pairs evaluated once on the frozen pair-level test pairs of A, C and C2 (no training); control only, never presented as performance; masked columns reproduced the earlier floors"
