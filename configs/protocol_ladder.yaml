@@ -70,6 +70,7 @@ reporting_rules:
 leak_audit_control:   # optional, labelled a control, never a result
   what: "same as run C but with similarity kernels built from ALL labels (as in the released MTGCDA files)"
   purpose: "show how much a label leak adds; not a comparable result"
+  evaluated_as: "kernel-propagation baselines (kernel_circ, kernel_dis, kernel_both) with the label matrix built from ALL known pairs, scored on the frozen pair-level test pairs of A, C and C2, next to the same baselines from training pairs only; no neural model is trained; reported as a control, never as performance"
 
 S0_threshold_note: "S0 threshold metrics use the model's own boundary (logit 0) because validation predictions were not saved in the frozen strict runs; runs B, A and C use the validation-chosen threshold"
 
