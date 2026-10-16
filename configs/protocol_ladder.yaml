@@ -93,3 +93,6 @@ run_log:   # one line per executed run; a rerun is only allowed to fix a failed 
   C: "executed once to completion (10 seeds x 5 folds x M1, M2, M3; 150 prediction files; 2,631 s on one GPU), no reruns; output hashes in results_manifest_runC.txt"
   C2: "executed once to completion (10 seeds x 5 folds x M1, M2, M3; 150 prediction files; 2,222 s on one GPU), no reruns; output hashes in results_manifest_runC2.txt"
   leak_audit: "kernel-propagation baselines with kernels built from ALL known pairs evaluated once on the frozen pair-level test pairs of A, C and C2 (no training); control only, never presented as performance; masked columns reproduced the earlier floors"
+  shuffled_aux_A: "M3_shuf executed once to completion (10 seeds x 5 folds; 50 prediction files; 1,532 s), no reruns; output hashes in results_manifest_A_M3shuf.txt"
+  shuffled_aux_C: "M3_shuf executed once to completion (10 seeds x 5 folds; 50 prediction files; 2,005 s), no reruns; output hashes in results_manifest_C_M3shuf.txt"
+  shuffled_aux_C2: "M3_shuf executed once to completion (10 seeds x 5 folds; 50 prediction files; 1,729 s), no reruns; output hashes in results_manifest_C2_M3shuf.txt"
