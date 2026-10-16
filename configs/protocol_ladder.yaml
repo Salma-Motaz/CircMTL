@@ -84,6 +84,12 @@ shuffled_auxiliary_control:
   comparison: "paired bootstrap over host groups (1000 resamples): M3 - M3_shuf, M3_shuf - M1, M3 - M1"
   rule: "content is used in a run if the 95% interval of M3 - M3_shuf excludes 0 with a positive estimate and M3_shuf - M1 is not significantly negative; otherwise content use is not demonstrated; reported for each run whatever the outcome"
 
+shuffled_auxiliary_control_outcome:   # written after the three runs; the registered rule above is unchanged
+  A: "M3 - M3_shuf +0.0025 [-0.0025, +0.0078]; M3_shuf - M1 +0.0049 [-0.0005, +0.0103]; M3 - M1 +0.0075 [+0.0019, +0.0132]; 34% of the gain lost when shuffled; rule: CONTENT USE NOT DEMONSTRATED"
+  C: "M3 - M3_shuf +0.0009 [-0.0009, +0.0026]; M3_shuf - M1 -0.0007 [-0.0024, +0.0010]; M3 - M1 +0.0002 [-0.0017, +0.0020]; no gain to explain; rule: CONTENT USE NOT DEMONSTRATED (expected)"
+  C2: "M3 - M3_shuf +0.0031 [+0.0007, +0.0054]; M3_shuf - M1 +0.0051 [+0.0031, +0.0072]; M3 - M1 +0.0082 [+0.0058, +0.0106]; 37% of the gain lost when shuffled; rule: CONTENT USED"
+  reading: "the rule is met in 1 of 3 runs (C2); about two thirds of the multi-task gain in A and C2 persists when the auxiliary edges are shuffled, so it is mainly a generic effect of the extra edges and loss; the content-specific part is about 0.003 AUROC, which is the size of the run-to-run variation measured in run B"
+
 run_log:   # one line per executed run; a rerun is only allowed to fix a failed assertion and must be logged here
   S0: "frozen strict-protocol results (3 seeds x 5 folds x M1, M2, M3); reported with the ladder metrics, not rerun"
   frozen_pair: "pair-level folds, frozen negatives (A, C, C2) and baseline floors created once (10 seeds x 5 folds); all leak and masking assertions passed; no training"
