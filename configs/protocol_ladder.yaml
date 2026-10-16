@@ -74,4 +74,4 @@ S0_threshold_note: "S0 threshold metrics use the model's own boundary (logit 0) 
 
 run_log:   # one line per executed run; a rerun is only allowed to fix a failed assertion and must be logged here
      S0: "frozen strict-protocol results (3 seeds x 5 folds x M1, M2, M3); reported with the ladder metrics, not rerun"
-     B: "executed once (3 seeds x 5 folds x M1, M2, M3), no reruns; run on the uniform_pair definitions above, which have not changed since (C2, kernel baselines and pair-level definitions were added afterwards and do not affect B)"
+     B: "executed twice with identical code, settings and frozen negatives (3 seeds x 5 folds x M1, M2, M3); the second execution was unplanned and came after the first result had been seen. The first execution's per-pair files were overwritten; its printed summary and file hashes (results_manifest.txt) were kept. Both are reported (AUROC differs by at most 0.002, MCC by at most 0.018); every conclusion is the same. Per-pair analyses (bootstrap, strata, popularity classifier) use the second execution. Cause of the difference not established (likely non-deterministic GPU scatter operations)."
