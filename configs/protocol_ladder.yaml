@@ -74,6 +74,16 @@ leak_audit_control:   # optional, labelled a control, never a result
 
 S0_threshold_note: "S0 threshold metrics use the model's own boundary (logit 0) because validation predictions were not saved in the frozen strict runs; runs B, A and C use the validation-chosen threshold"
 
+shuffled_auxiliary_control:
+  purpose: "test whether the content of the miRNA and RBP edges, and not just their presence or the extra loss, accounts for the small multi-task gain (M3 - M1)"
+  model: "M3_shuf = M3 with the circRNA endpoints of all miRNA and RBP edges permuted by one random permutation per seed (partner sets reassigned among circRNAs, degree distribution preserved); disease edges, features, folds, negatives, training settings and the auxiliary-weight grid unchanged; the permuted edges are used consistently for message passing, supervision and auxiliary negatives"
+  runs: ["A", "C", "C2"]
+  run_order: "A first, then C, then C2; stopping depends on time, never on a result"
+  amendment: "run C was added to the list before any result of this control existed; in run C the multi-task gain is about zero (M3 - M1 = +0.0002), so a null result is expected there; run C is reported whatever the outcome"
+  seeds: "10 pair-level seeds; permutation seed 90000 + seed; the permutation is the same for all folds of a seed"
+  comparison: "paired bootstrap over host groups (1000 resamples): M3 - M3_shuf, M3_shuf - M1, M3 - M1"
+  rule: "content is used in a run if the 95% interval of M3 - M3_shuf excludes 0 with a positive estimate and M3_shuf - M1 is not significantly negative; otherwise content use is not demonstrated; reported for each run whatever the outcome"
+
 run_log:   # one line per executed run; a rerun is only allowed to fix a failed assertion and must be logged here
   S0: "frozen strict-protocol results (3 seeds x 5 folds x M1, M2, M3); reported with the ladder metrics, not rerun"
   frozen_pair: "pair-level folds, frozen negatives (A, C, C2) and baseline floors created once (10 seeds x 5 folds); all leak and masking assertions passed; no training"
