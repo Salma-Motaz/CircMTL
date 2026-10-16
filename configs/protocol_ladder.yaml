@@ -10,7 +10,7 @@ runs:
   C2: {split: pair_level, test_negatives: uniform_test_circ, training_negatives: uniform_pair, note: "run C with the negative circRNAs drawn only from the circRNAs of the evaluated pairs; removes the held-out artifact (see negatives.held_out_artifact_note)"}
   X:  {split: external_dataset, train: "dataset_v1 (all pairs)", test: "circRNADisease v2.0 pairs on circRNAs absent from dataset_v1", test_negatives: [degree_matched, uniform_pair], note: "pending access to the external data; modelled on HGECDA's train-on-one-dataset, test-on-another check"}
 models: [M1, M2, M3]
-baselines: [disease_degree, circrna_degree, circrna_inverse_degree, log_degree_sum, kernel_circ, kernel_dis, kernel_both]   # kernel_* = GIP kernels of the training label matrix; kernel_both is the pre-specified headline kernel baseline, the other two decompose it; all from TRAINING pairs only
+baselines: [disease_degree, circrna_degree, circrna_inverse_degree, log_degree_sum, kernel_circ, kernel_dis, kernel_both, shortcut_logit]   # kernel_* = GIP kernels of the training label matrix; kernel_both is the pre-specified headline kernel baseline, the other two decompose it; shortcut_logit = logistic regression on log1p(disease training degree) and log1p(circRNA training degree), fitted on the fold's validation pairs, scored on test; all from TRAINING pairs only
 seeds: {host_gene: [0, 1, 2], pair_level: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]}   # compared papers repeat 5-fold CV 10 times (MVGNCDA, HGECDA) or 100 times (GraphCDA)
 folds: 5
 
@@ -50,6 +50,7 @@ negatives:
   pair_level_seeds: "fold permutation seed 50000 + seed; validation split 60000 + 1000*seed + fold; frozen negatives: validation 70000 + 1000*seed + fold, test 80000 + 1000*seed + fold"
   s0_random_scheme_note: "the frozen 'random' scheme used in S0 keeps each positive's circRNA and draws the disease uniformly (checked on all 15 folds: negatives never known positives, no duplicates, mean training degree of the drawn diseases 6.3 against 31.7 for positives); it is reported as 'random disease, same circRNA' and is not the uniform_pair scheme"
   uniform_pair_seeds: "run B frozen negatives: validation seed 30000 + 1000*seed + fold, test seed 40000 + 1000*seed + fold (distinct from the strict-protocol seeds 10000 and 20000)"
+  floors_note: "shortcut_logit was added after the pair-level floors of the single baselines were seen and before any pair-level model was trained; it is a two-parameter rule with no tuned settings and is reported for every run whatever its value"
 
 leak_assertions:    # run in code before every fit; a failure invalidates the run
   - "every positive is in exactly one of train / validation / test per seed"
@@ -75,3 +76,4 @@ S0_threshold_note: "S0 threshold metrics use the model's own boundary (logit 0) 
 run_log:   # one line per executed run; a rerun is only allowed to fix a failed assertion and must be logged here
      S0: "frozen strict-protocol results (3 seeds x 5 folds x M1, M2, M3); reported with the ladder metrics, not rerun"
      B: "executed twice with identical code, settings and frozen negatives (3 seeds x 5 folds x M1, M2, M3); the second execution was unplanned and came after the first result had been seen. The first execution's per-pair files were overwritten; its printed summary and file hashes (results_manifest.txt) were kept. Both are reported (AUROC differs by at most 0.002, MCC by at most 0.018); every conclusion is the same. Per-pair analyses (bootstrap, strata, popularity classifier) use the second execution. Cause of the difference not established (likely non-deterministic GPU scatter operations)."
+     frozen_pair: "pair-level folds, frozen negatives (A, C, C2) and baseline floors created once (10 seeds x 5 folds); all leak and masking assertions passed; no training"
