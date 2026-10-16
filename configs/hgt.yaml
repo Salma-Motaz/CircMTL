@@ -1,0 +1,14 @@
+# Sensitivity analysis: HGT instead of R-GCN (listed in graph.yaml under sensitivity). Written before any HGT result.
+encoder: "PyG HGTConv, 2 layers, hidden 128, 4 heads (32 per head), dropout 0.2 between layers, no extra ReLU (HGT has its own nonlinearity and skip)"
+tuning: "none; layers and heads are fixed here"
+identical_to_main: [input projections, learned embeddings, DistMult heads, graphs, edge splits, folds, seeds, negatives, schedule, learning rate, weight decay, model selection, auxiliary-weight grid]
+variants: [M1_hgt, M2_hgt, M3_hgt]
+primary_comparison: "M3_hgt - M3, degree-matched disease AUROC, paired bootstrap over host groups (1000 resamples)"
+secondary: [M1_hgt - M1, M2_hgt - M2, M3_hgt - M2_hgt, M3_hgt - M1_hgt]
+architecture_decision: >
+  R-GCN stays the main encoder (declared in the proposal). HGT replaces it only if BOTH hold:
+  (a) mean validation AUROC of the selected runs is higher for M3_hgt than M3, with a 95% bootstrap CI of the paired
+  difference (over the 15 seed x fold runs) that excludes 0;
+  (b) the primary test comparison is positive with a 95% CI that excludes 0.
+  Otherwise HGT is reported as a sensitivity result and R-GCN is kept.
+report: [trainable parameters of both encoders, run time, validation AUROC of both]

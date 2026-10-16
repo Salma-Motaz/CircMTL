@@ -1,0 +1,8 @@
+targets:
+  floor_primary: 40          # chosen from target counts, before any graph-model result
+  floor_sensitivity: 30
+  applies_to: [miRNA, RBP]
+  probe_floor: 50            # Objective 1 used 50 (fixed earlier); 40 and 30 are reported as sensitivity there
+  rationale: >
+    Floor 50 used 12% of miRNA working edges (21 targets); floor 40 uses 22% (49 targets)
+    with ~8 positives per target per test fold; floor 30 (130 targets, ~6 per fold) is less stable.

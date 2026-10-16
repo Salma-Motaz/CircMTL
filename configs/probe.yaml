@@ -1,0 +1,78 @@
+# Objective 1 - linear probe protocol (fixed BEFORE any probe result)
+data: data/processed/dataset_v1
+
+embeddings:
+  dir: RNA-FM_embedding_output
+  main: rnafm_embeddings_overlap.npy
+  sensitivity: rnafm_embeddings_nonoverlap.npy     # compared on the 350 long circRNAs only
+  layer6: rnafm_embeddings_overlap_L6.npy          # pre-registered fallback (encoder_decision)
+
+inputs:                                            # each run separately; names as in the results tables
+  - length                                         # log10(seq_len)
+  - embedding                                      # overlapping windows (main)
+  - embedding+length
+  - embedding_nonoverlap                           # sensitivity
+  - kmer                                           # 3- and 4-mer frequencies (320), circular, fixed vocabulary
+
+
+model:
+  type: logistic_regression_l2
+  scaling: standardise on the outer training fold only
+  C_grid: [0.001, 0.01, 0.1, 1, 10]
+  C_selection: inner 3-fold split grouped by host_group, within the outer training fold
+
+tasks:
+  rbp:   {targets: 83, rows: rbp_labelled circRNAs, label: pos_working}
+  mirna: {targets: 21, rows: mirna_labelled circRNAs, label: pos_working}
+  disease:
+    main: bilinear probe (see disease_probe)
+    check: per-disease logistic regression for diseases with >= 10 circRNAs
+
+disease_probe:
+  score: (A x_c) . v_d + b_d
+  rank: 64
+  loss: class-balanced logistic loss + L2, fitted with L-BFGS (max 500 iterations)
+  negatives_per_positive_train: 5                  # degree-matched, from training-fold pairs, sampled once per fit
+  lambdas: [0.0001, 0.001, 0.01]
+  selection: inner 80/20 split grouped by host gene, then refit on the full training fold
+
+evaluation:
+  folds_file: folds.csv
+  k: 5
+  seeds: [0, 1, 2]
+  predictions: out-of-fold; scores rank-normalised within each test fold, then pooled; averaged over the 3 seeds
+  metrics: [AUROC, AUPR]                           # RBP/miRNA: per target, reported as the median over targets
+  disease_negatives: {primary: degree_matched, secondary: random}
+  bootstrap: 1000                                  # resampling host groups
+
+baselines:
+  disease_popularity: {degree_matched: 0.510, random: 0.822}
+  length_only: computed in this run, same protocol
+
+pass_rule:
+  rbp: median AUROC of embedding > length; bootstrap CI of the difference excludes 0
+  mirna: same rule
+  disease: embedding AUROC on degree-matched negatives > 0.510 (CI excludes 0.510), and > length (CI of the difference excludes 0)
+
+reported_splits:
+  - length <= 1022 vs > 1022
+  - with vs without hub circRNAs (is_hub)
+  - with vs without hub RBPs (RBP head)
+  - overlap vs non-overlap (long circRNAs only)
+  - circRNAs with centred cosine < 0.95 between methods (descriptive only)
+
+decision_rule_overlap: >
+  Overlapping stays the main method unless non-overlapping is better with a bootstrap CI excluding 0.
+
+encoder_decision: >
+  Keep RNA-FM if the RBP and miRNA heads pass. A disease-only failure does not change the encoder.
+  If RBP or miRNA fail, test a middle layer (layer 6) before considering another encoder.
+  Embedding vs kmer is reported, not a pass criterion: if kmer matches the embedding,
+  state that RNA-FM adds no signal beyond nucleotide composition for that task.
+
+layer_decision: >
+  Layer 6 is compared with layer 12 on all three tasks with the same protocol.
+  Layer 6 replaces layer 12 for all tasks only if (1) it passes the miRNA rule
+  (beats length, CI of the difference excludes 0) and (2) it is not worse than layer 12
+  on RBP or disease (the CI of the L6 - L12 difference does not lie entirely below 0).
+  Otherwise layer 12 stays, and the miRNA result is reported as not passed.

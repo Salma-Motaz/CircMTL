@@ -1,0 +1,60 @@
+# Extension A - ontology-derived disease features
+# POST HOC: written after the M1-M3 results were known. Reported separately; graph.yaml and M1-M3 are unchanged.
+frozen_inputs:
+  disease_mesh_map: new_graph/disease_ext/disease_mesh_map.csv    # 205/207 diseases mapped to MeSH 2026 (fixed before any model)
+  similarity: new_graph/disease_ext/disease_mesh_sim.npy           # Wang method, attenuation 0.5; uses no circRNA labels
+  feature_file: new_graph/disease_ext/disease_feat_mesh.npy
+  negatives: negatives_cda.csv                                 # unchanged
+excluded_still: [GIP similarity, circRNA functional similarity, any similarity derived from the association matrix]
+variants: [M1_mesh, M2_mesh, M3_mesh]
+disease_input: >
+  Linear(207 -> 128) on the MeSH similarity row for the 200 diseases with features;
+  learned Embedding for the 7 diseases without (5 non-disease concepts, 2 unmapped names)
+identical_to_main: [graph, relations, edge splits, folds, seeds, negatives, training schedule, model selection, hidden size]
+decision_rule:
+  keep_features_if: "M3_mesh - M3 on degree-matched AUROC has a 95% bootstrap CI over host groups that excludes 0"
+  ablation: "report M3_mesh - M2_mesh and M2_mesh - M1_mesh as for the main models"
+  selection: "validation only; no choice is made on test scores"
+sensitivity:
+  - "learned residual added to the ontology input for all diseases"
+  - "drop the 10 flagged diseases (3 uncertain, 5 non-disease, 2 unmapped; 15 pairs)"
+  - "exclude strict synonym collisions (negatives_collision_flags.csv)"
+  - "stratify by disease training degree (0-2 pairs vs more)"
+stop_rule: "If M3_mesh does not beat M3 by the rule above, report the main results unchanged and state that ontology features did not help."
+
+clarification:   # added after the Cell 8 runs finished, and before the all-fold test comparison; the single-fold smoke test (Cell 7, seed 0 fold 0) had printed test AUROCs earlier, and the decision to run all folds did not depend on them
+  keep_features_if: "M3_mesh - M3 on degree-matched disease AUROC is POSITIVE and its 95% bootstrap CI over host groups excludes 0"
+  reason: "the original wording would also pass a significantly negative difference; the intent was a gain"
+
+diagnostics:     # pre-registered; written before any diagnostic score was computed. No parameters are fitted.
+  host_gene_prior:
+    source: "CTD curated gene-disease associations (DirectEvidence marker/mechanism or therapeutic only; MeSH-coded diseases)"
+    score: "for a pair (circRNA c, disease d): the largest MeSH similarity (Wang, attenuation 0.5) between d and any disease directly associated with c's host gene; 0 if the gene has none"
+  mirna_enrichment:
+    source: "HMDD v3.0 miRNA-disease associations, mapped to the seed families"
+    score: "Circ2Traits-style enrichment: -log10 hypergeometric p of the disease's miRNA families among the families bound by c (universe = the graph's miRNA families)"
+  evaluation: "AUROC on the frozen degree-matched negatives (negatives_cda.csv), unique pairs; bootstrap over host groups"
+  pass_rule: "AUROC >= 0.55 and the lower 95% bound > 0.527 (the length-only floor)"
+  if_pass: "add that relation as static edges (outside the 70/30 split, never decoded) and run the pre-registered ablation ladder against M3"
+  if_fail: "do not add the relation; report the diagnostic AUROC and its interval"
+
+mirna_enrichment_details:   # pre-registered before any enrichment score or AUROC was computed
+  hmdd: "v4.0 (2023.07) alldata_v4.txt, 53,553 records"
+  disease_to_records: "records whose disease name equals the MeSH descriptor name of the disease (exact level, no descendants); for diseases with two descriptors, the descriptor with fewer HMDD records"
+  mirna_mapping: "HMDD precursor name -> every graph family containing a mature miRNA with the same arm-less key (arm ambiguity accepted and counted)"
+  universe: "the graph's miRNA families (families with >=1 working edge among the 1,582 circRNAs)"
+  bound_set: "families with a working edge of the circRNA; no working edge -> score 0"
+  score: "-log10 P(X >= k), hypergeometric survival with N=|universe|, n=|disease set|, K=|bound set|, k=|intersection|; score 0 when n=0, K=0 or k=0"
+  controls: ["bound-set size only (expect 0.5)", "disease-set size only", "shuffled bound sets, 20 permutations"]
+  pass_rule: "unchanged from diagnostics.pass_rule"
+
+evaluation_as_run:   # procedure note; the pass rule is unchanged
+  host_gene_prior: "per-seed AUROC averaged over 3 seeds (as for M1-M3); unique-pair AUROC recomputed in Cell 11 of the notebook"
+  mirna_enrichment: "both versions reported; the pass rule is applied to the unique-pair AUROC, as written in diagnostics.evaluation"
+
+diagnostic_outcomes_final:   # supersedes any earlier outcome note; the pre-registrations above are unchanged
+  host_gene_prior: "AUROC 0.507 (95% CI 0.500-0.515); shuffled-gene control 0.502; rule not met; relation not added"
+  mirna_enrichment: "HMDD v4.0; unique-pair AUROC 0.509 (95% CI 0.502-0.517); shuffled bound sets 0.504; disease-set-size control 0.522 (0.505-0.540); rule not met; relation not added"
+  mesh_features: "M3_mesh - M3 = +0.003 (95% CI -0.007 to 0.012), degree-matched; rule not met; main results stand"
+  not_run: ["is_a edges", "learned residual", "strict-collision sensitivity (bounded at about 0.003 by the Cell 4 argument)"]
+  extension_conclusion: "No tested disease-side input exceeded 0.534 on degree-matched negatives; the extension is closed"

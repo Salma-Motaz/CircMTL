@@ -1,0 +1,21 @@
+inputs:
+  raw_dir: data/raw
+
+datasets:
+  circr2disease:
+    dir: data/raw/CircR2Disease_V2.0
+  encori_mirna:
+    dir: data/raw/encori/hg38_miRNA_circRNA/circRNA
+  encori_rbp:
+    dir: data/raw/encori/hg38_RBP_circRNA/hg38/anno/circRNA
+  ncbi_grch38:
+    dir: data/raw/ncbi_grch38
+
+mesh:
+    dir: data/raw/mesh
+    
+models:  
+  rnafm_weights: models/RNA-FM_pretrained.pth     # move it out of the dataset folder
+  
+outputs:
+  processed_dir: data/processed

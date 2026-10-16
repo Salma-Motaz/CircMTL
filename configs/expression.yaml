@@ -1,0 +1,42 @@
+# Extension B - circRNA normal-tissue context (written before any expression value was loaded)
+source: "circAtlas 3.0, human normal-tissue circRNA expression matrix (record version and download date)"
+excluded: ["cancer expression (MiOncoCirc, CSCD2)", "cell-type / cell-line expression", "circAtlas disease page"]
+mapping: "circBase ID -> circAtlas ID via circAtlas's conversion table; unmapped circRNAs get a missing flag, never imputed from labels"
+coverage_gate: "stop if fewer than 60% of the 1,582 circRNAs map with non-zero expression"
+feature: "log1p expression per tissue, each circRNA's profile scaled to sum 1, plus a missing flag"
+diagnostic:
+  score: "cosine similarity between the test circRNA's tissue profile and the mean profile of the disease's TRAINING circRNAs (per fold)"
+  evaluation: "frozen degree-matched negatives, host-gene folds, 3 seeds; bootstrap over host groups"
+  controls: ["profiles shuffled across circRNAs", "profile sum only (expression level, no tissue information)"]
+  pass_rule: "AUROC >= 0.55 and lower 95% bound > 0.527 (length floor)"
+if_pass: "concatenate the profile to the circRNA input (RNA-FM + length + tissue profile + flag); run M1_expr and M3_expr; compare with M1 and M3"
+if_fail: "report the diagnostic AUROC and its interval; strict-protocol work is closed"
+
+amendment_1:   # written after seeing the format of 50 rows of one tissue search, before collecting or scoring any profile
+  source: "circAtlas 3.0 'search by species and tissue' results (human, normal tissues); one export per tissue, combined"
+  feature: "binary tissue-detection profile (1 if detected in that tissue), plus the number of samples; no expression values are available in bulk"
+  mapping: "SUPERSEDED by amendment_2"
+  unchanged: [excluded, coverage_gate, diagnostic, controls, pass_rule]
+
+amendment_2:   # written after seeing the conversion table, before any profile was scored
+  mapping: "circBase ID -> circAtlas ID with circAtlas's own Convert tool (queried on [DATE]); replaces coordinate matching and liftover; IDs with no circAtlas ID, or absent from the tissue file, get the missing flag"
+  tissue_file: "circatlas_unique_circRNAs.csv: human tissue-search exports combined and deduplicated on circAtlas ID ([768,986] rows, downloaded [DATE])"
+  coverage_definition: "a circRNA counts as covered if it has a circAtlas ID that appears in the tissue file (so its profile has at least one tissue)"
+  unchanged: [feature (binary detection profile, per amendment_1), coverage_gate, diagnostic, controls, pass_rule]
+  result_counts: "of 1,582 circRNAs: 1,055 have a circAtlas ID and a tissue profile (66.7%); 381 returned no circAtlas ID; 146 returned 'No data available in table'; all 527 get the missing flag"
+
+amendment_3:   # written after the label-free profile statistics were seen (median 26 of 33 tissues; 94% in >= 3), before any diagnostic score was computed
+  reason: "profiles are nearly saturated, so a plain cosine between binary profiles is dominated by how many tissues a circRNA is detected in, not by which ones"
+  score_primary: "centred cosine: subtract the mean profile of the fold's training circRNAs from both the circRNA profile and the disease's mean training profile, then take the cosine"
+  score_sensitivity: "plain cosine (the original registration)"
+  controls: ["centred cosine with profiles shuffled across circRNAs", "disease side only: score = sum of the disease's mean training profile (no circRNA information)"]
+  controls_note: "the original 'profile sum only' control equals 0.5 by construction (a circRNA's positive and negative pairs share one profile), so it is replaced"
+  missing_profile: "circRNAs without a profile score 0 (neutral); the pass rule is applied to all test pairs, and AUROC on profiled circRNAs only is reported as secondary"
+  pass_rule: "unchanged (AUROC >= 0.55 and lower 95% bound > 0.527), applied to the primary score"
+
+diagnostic_outcome_final:   # written after the diagnostic was run; the pre-registrations above are unchanged
+  centred_cosine: "AUROC 0.542 (seed range 0.537-0.548; 95% CI over host groups 0.531-0.553); all test pairs, 71.6% with a profile"
+  controls: "profiles shuffled 0.491 (0.478-0.504); disease side only 0.490"
+  sensitivity: "plain cosine 0.510; centred cosine on profiled circRNAs only 0.552 (secondary, not the pass rule)"
+  rule: "AUROC >= 0.55 and lower bound > 0.527: lower bound met (0.531), AUROC not met (0.542); NOT MET"
+  decision: "profile not added to the model; M1_expr and M3_expr not run; extension closed per if_fail"

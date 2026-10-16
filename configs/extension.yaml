@@ -1,0 +1,15 @@
+# Extension E1 - host-gene disease knowledge (fixed before any extension result)
+source: "Open Targets Platform, target-disease associations by data type (record the release used)"
+mapping:
+  diseases: "207 names -> EFO/MONDO IDs via Open Targets search; every non-exact match reviewed by hand; unmappable = no prior"
+  genes: "circBase host-gene symbols -> Ensembl gene IDs; placeholder (solo) host groups = no prior"
+evidence:
+  include: [genetic_association, somatic_mutation, known_drug, affected_pathway, animal_model, rna_expression]
+  exclude: [literature]                 # text mining could copy circRNA papers' host-gene mentions into the prior
+  association: "indirect (ontology-propagated) associations"
+prior: "p(c, d) = max over included data types of the host gene's score for disease d (0 if none), plus a 'missing' flag"
+use: "disease score = DistMult(c, d) + a * p(c, d) + b * missing(c, d); a and b learned"
+models: ["M1+P", "M3+P"]                # compared with M1 and M3 on the same folds, negatives and settings
+feasibility_gate: "prior alone on validation pairs (degree-matched negatives): AUROC > 0.537 (length floor + 0.01); otherwise stop and report"
+success: "M1+P or M3+P minus M1: 95% bootstrap CI over host groups excludes 0"
+sensitivity: ["exclude rna_expression"]

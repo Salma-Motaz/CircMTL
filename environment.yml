@@ -1,0 +1,22 @@
+name: circmtl
+
+channels:
+  - conda-forge
+
+dependencies:
+  - python=3.11
+  - pip
+  - pip:
+        - --extra-index-url https://download.pytorch.org/whl/cu126
+        - torch
+        - rna-fm
+  - numpy
+  - pandas
+  - openpyxl          # read .xlsx
+  - biopython         # parse the .fa sequences
+  - scikit-learn
+  - matplotlib
+  - seaborn
+  - pyyaml
+  - ipykernel
+  - pyfaidx

@@ -1,0 +1,6 @@
+# Sensitivity listed in graph.yaml: "M1 and M3 without log length". Written before any no-length result. Descriptive; no decision rule.
+change: "drop the log10 length column (last column of the circRNA features); everything else identical (RNA-FM 640 dims, same folds, seeds, graphs, negatives, schedule, auxiliary-weight grid)"
+variants: [M1_nolen, M3_nolen]
+comparisons: ["M1_nolen - M1", "M3_nolen - M3", "M3_nolen - M1_nolen"]
+question: "does the M3 - M1 difference, or any model's level, depend on the length feature?"
+report: "degree-matched disease AUROC, paired bootstrap over host groups; also the auxiliary heads of M3_nolen"

@@ -1,0 +1,94 @@
+# Objective 2 - heterogeneous graph and model specification (fixed before any graph-model result)
+schema:
+  node_types: [circRNA, disease, miRNA_family, RBP]
+  relations:                                # each stored forward + reverse; reverse used ONLY for message passing
+    - [circRNA, associated_with, disease]
+    - [circRNA, binds, miRNA_family]
+    - [circRNA, bound_by, RBP]
+  sizes: {circRNA: 1582, disease: 207, miRNA_family: 416, RBP: 225}
+  edges: {circRNA-disease: 2137, circRNA-miRNA_family: 7540, circRNA-RBP: 22578}
+
+evidence_filters:
+  miRNA: "ENCORI clipExpNum >= 2; miRNAs merged into seed families (mature nt 2-8)"
+  RBP: "ENCORI exonic and clusterClipExpNum >= 2"
+
+mirna_families:
+  mapping_scope: "all 642 miRNAs in the ENCORI circRNA file; sequence only, no evidence filter"
+  seed: "mature nucleotides 2-8 (7-mer), 5'->3'; ENCORI miRseq is aligned 3'->5', so gaps removed and reversed"
+  key: "seed sequence; member miRNA names kept in graph/mirna_families.csv"
+  arms: "-5p and -3p are separate miRNAs; grouped only if their seeds are identical"
+
+input_projection:
+  hidden_dim: 128
+  circRNA: "Linear(641 -> 128): RNA-FM L12 overlap (640) + log10 length (1), standardised on training circRNAs"
+  disease: "Embedding(207, 128), learned  # disease-degree check: 8.8% of test positives on diseases with 0-2 training edges (< 10%)"
+  miRNA_family: "Embedding(416, 128), learned"
+  RBP: "Embedding(225, 128), learned"
+
+splits:
+  test: "host-gene fold (frozen, per seed); test circRNAs absent from training (all their edges removed)"
+  validation: "20% of training circRNAs, grouped by host gene; their disease edges removed; aux edges kept as input"
+  message_passing_vs_supervision: >
+    each epoch, the training edges of every relation are split 70/30 into disjoint
+    message-passing and supervision sets; reverse edges are built from message-passing edges only
+
+inference:
+  disease_edges: "training circRNAs only, identical at validation and test (no validation labels added at test)"
+  disease_eval: "test (and external) circRNAs added with their auxiliary edges (design A)"
+  auxiliary_eval: "test (and external) circRNAs added without auxiliary edges (design B)"
+  density: "training uses 70% of edges for message passing (edge dropout); validation and test use all, so selection is made at test-time density"
+
+heads: {disease: link prediction, miRNA_family: link prediction, RBP: link prediction}
+encoder:
+  main: "RGCN, 2 layers, basis decomposition with 3 bases (regulariser), dropout 0.2"
+  alternative: HGT
+decoder: "DistMult per forward relation only"
+
+training_negatives:
+  disease: "5 per supervision edge, same training circRNA, disease drawn by training degree, never a known positive"
+  auxiliary: >
+    5 per supervision edge, only for circRNAs labelled in ENCORI (absent = unknown, never negative),
+    partner drawn by training degree, never an ENCORI edge of any evidence
+
+evaluation_negatives:
+  disease: "frozen, degree-matched (primary) and random (secondary), 1 per positive (negatives_cda.csv)"
+  auxiliary: >
+    frozen per seed/fold, 1 per held-out edge, labelled test circRNAs only, partner drawn by training degree,
+    never an ENCORI edge of any evidence (weak-evidence pairs treated as ambiguous: neither positive nor negative)
+
+loss:
+  M3: "L_disease + w_RBP * L_RBP + w_miRNA * L_miRNA; w chosen from {0.1, 0.5, 1} on validation disease AUROC"
+  early_stopping: "validation disease AUROC (all models)"
+  model_selection: "best 5-epoch moving average of validation disease AUROC; patience 30, max 300 epochs"
+
+models:
+  M1: "graph: circRNA-disease only; loss: disease (proposal's single-task model)"
+  M2: "graph: all relations; loss: disease only (auxiliary edges as input)"
+  M3: "graph: all relations; loss: disease + RBP + miRNA (proposal's multi-task model)"
+  required: [M1, M2, M3]
+  optional: [M3-RBP, M3-miRNA]
+
+baselines:
+  length_only: "log10 length; disease floor 0.527 (degree-matched)"
+  degree_only: >
+    disease task: test circRNA's observed miRNA/RBP degree (input at prediction) allowed;
+    auxiliary tasks: partner degree only, never the test circRNA's own auxiliary degree
+
+reporting:
+  - "metrics averaged over 5 folds x 3 seeds, bootstrap CIs over host groups"
+  - "cold nodes per fold (graph/folds/fold_summary.csv)"
+
+sensitivity:
+  - "M1 and M3 without log length"
+  - "k-mer features added"
+  - "HGT instead of RGCN"
+  - "disease evaluation restricted to test pairs whose disease has >= 1 training edge in that fold"
+  - "disease results stratified by aux_status: both (+ miRNA_only), RBP_only, neither (built-in control: no graph context)"
+  - "optional: weak-evidence auxiliary pairs scored as negatives"
+  - "optional: refit on train + validation circRNAs with the epoch count fixed from validation"
+
+optional_extension: "miRNA-disease edges (HMDD), reported separately"
+
+model_selection: >
+    best 5-epoch moving average of validation disease AUROC after a 20-epoch warm-up;
+    at least 60 epochs, patience 40, max 300 (same for all models)

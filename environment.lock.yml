@@ -1,0 +1,16 @@
+name: circmtl
+channels:
+  - defaults
+dependencies:
+  - pip
+  - pandas
+  - seaborn
+  - openpyxl
+  - pyyaml
+  - python=3.11
+  - matplotlib
+  - numpy
+  - biopython
+  - scikit-learn
+  - ipykernel
+prefix: C:\Users\aeasa\anaconda3\envs\circmtl

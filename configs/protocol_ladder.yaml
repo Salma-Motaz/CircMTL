@@ -1,0 +1,77 @@
+# Protocol ladder: how much of a score comes from the evaluation protocol (written before any ladder run)
+purpose: "measure how each protocol choice (split, negatives, label-containing features) changes disease AUROC for the same models; the strict protocol stays the main result"
+main_result: "strict protocol (host-gene folds, degree-matched negatives), frozen in git tag v1-strict-results; ladder runs are secondary and never replace it"
+
+runs:
+  S0: {split: host_gene, test_negatives: degree_matched, note: "already run; reported with the same metrics for reference"}
+  B:  {split: host_gene, test_negatives: uniform_pair, training_negatives: uniform_pair}
+  A:  {split: pair_level, test_negatives: degree_matched, training_negatives: degree_aware}
+  C:  {split: pair_level, test_negatives: uniform_pair, training_negatives: uniform_pair, note: "Protocol L: the literature-style setting, with masking done correctly"}
+  C2: {split: pair_level, test_negatives: uniform_test_circ, training_negatives: uniform_pair, note: "run C with the negative circRNAs drawn only from the circRNAs of the evaluated pairs; removes the held-out artifact (see negatives.held_out_artifact_note)"}
+  X:  {split: external_dataset, train: "dataset_v1 (all pairs)", test: "circRNADisease v2.0 pairs on circRNAs absent from dataset_v1", test_negatives: [degree_matched, uniform_pair], note: "pending access to the external data; modelled on HGECDA's train-on-one-dataset, test-on-another check"}
+models: [M1, M2, M3]
+baselines: [disease_degree, circrna_degree, circrna_inverse_degree, log_degree_sum, kernel_circ, kernel_dis, kernel_both]   # kernel_* = GIP kernels of the training label matrix; kernel_both is the pre-specified headline kernel baseline, the other two decompose it; all from TRAINING pairs only
+seeds: {host_gene: [0, 1, 2], pair_level: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]}   # compared papers repeat 5-fold CV 10 times (MVGNCDA, HGECDA) or 100 times (GraphCDA)
+folds: 5
+
+unchanged_across_runs:
+  - "encoder: R-GCN, 2 layers, 3 bases, dropout 0.2"
+  - "hidden size 128; DistMult heads"
+  - "circRNA features: RNA-FM L12 + log10 length"
+  - "auxiliary relations and auxiliary negatives"
+  - "learning rate and weight decay"
+  - "auxiliary-weight grid {0.1, 0.5, 1}, chosen on validation"
+model_selection: "validation disease AUROC, 5-epoch moving average, warm-up 20, patience 40, max 300 (same for every run; never the test fold)"
+threshold: "chosen on the validation pairs to maximise F1, then applied unchanged to the test pairs (never chosen on test)"
+
+literature_alignment:
+  adopted_for_protocol_L: ["pair-level 5-fold CV repeated 10 times", "one random negative per positive", "metrics: AUROC, AUPR, accuracy, precision, recall, specificity, F1, MCC", "train-on-one-dataset external check (HGECDA)", "case study: literature check of top predictions (all four papers)"]
+  adopted_with_masking: ["GIP, functional and cosine similarity built per fold from training pairs only (HGECDA states this masking explicitly)", "MeSH semantic similarity (label-free)"]
+  not_adopted: ["model, checkpoint or threshold selection on the test fold (MTGCDA code)", "similarity kernels or graph edges built from all labels (MTGCDA code and shipped files)", "hyperparameters chosen from the evaluation folds", "association-derived inputs for circRNAs absent from training in the strict protocol"]
+  comparability_note: "published numbers use other dataset versions and sizes (MVGNCDA Dataset_5: 3,515 pairs; GraphCDA CircR2Disease 2.0: 4,201 pairs; this project: 2,137 after filtering), so rows are compared by mechanism, not by absolute value"
+  optional_realistic_prevalence_check: "score all unknown pairs of the test circRNAs as negatives (about 1:150) and report AUPR; balanced AUPR is inflated (MVGNCDA reports AUPR 0.476-0.947 against AUC 0.971-0.999 on its sparse datasets)"
+
+pair_level_split:
+  unit: "each known circRNA-disease pair; random 5-fold per seed over all 2,137 positives"
+  validation: "20% of the training pairs, random; their disease edges are removed from the graph"
+  graph: "message passing and supervision use training pairs only (the existing 70/30 split per epoch); validation and test disease edges never enter any graph"
+  inference_graph: "training pairs only, identical at validation and test (no validation labels added at test)"
+  auxiliary_edges: "all circRNAs keep their ENCORI edges (they are not disease labels)"
+
+negatives:
+  uniform_pair_test: "one per positive, frozen per seed and fold; disease uniform over all diseases; circRNA uniform over the circRNAs of the evaluated set (pair_level: all circRNAs; host_gene: the fold's test circRNAs, validation circRNAs for validation); never a pair that is a positive anywhere in the full matrix"
+  uniform_pair_training: "5 per supervision edge; circRNA uniform over the training universe, disease uniform; excludes TRAINING positives only (a test or validation positive may be drawn as a noisy negative; excluding it would use test labels)"
+  degree_matched_test: "same circRNA as the positive, disease drawn by training degree, never a known positive (as in the strict protocol, recomputed within pair-level folds)"
+  degree_aware_training: "same sampler as the strict runs (same circRNA, disease ~ training degree) recomputed from the pair-level fold's training pairs, excluding TRAINING positives only"
+  uniform_test_circ: "pair-level only: one per positive, circRNA uniform over the circRNAs of the evaluated pairs (validation circRNAs for validation, test circRNAs for test), disease uniform, never a known positive; as in run B"
+  reason_for_host_gene_restriction: "if negatives could use training circRNAs, 'has training disease edges' would separate them from test positives trivially"
+  held_out_artifact_note: "in a pair-level split every circRNA has at least one known disease, so a circRNA with no training edge must have a held-out pair; uniform-pair negatives drawn from all circRNAs are mostly circRNAs with training edges, so 'no training edges' separates test positives from negatives (seen in a synthetic check before any pair-level run; reported through the circrna_inverse_degree baseline). Run C keeps the literature-style draw and run C2 removes the artifact."
+  pair_level_training_pool: "training universe = circRNAs with at least one training pair"
+  pair_level_seeds: "fold permutation seed 50000 + seed; validation split 60000 + 1000*seed + fold; frozen negatives: validation 70000 + 1000*seed + fold, test 80000 + 1000*seed + fold"
+  s0_random_scheme_note: "the frozen 'random' scheme used in S0 keeps each positive's circRNA and draws the disease uniformly (checked on all 15 folds: negatives never known positives, no duplicates, mean training degree of the drawn diseases 6.3 against 31.7 for positives); it is reported as 'random disease, same circRNA' and is not the uniform_pair scheme"
+  uniform_pair_seeds: "run B frozen negatives: validation seed 30000 + 1000*seed + fold, test seed 40000 + 1000*seed + fold (distinct from the strict-protocol seeds 10000 and 20000)"
+
+leak_assertions:    # run in code before every fit; a failure invalidates the run
+  - "every positive is in exactly one of train / validation / test per seed"
+  - "no validation or test positive appears in any message-passing, supervision or inference edge"
+  - "every frozen test and validation negative is absent from the full set of positives"
+  - "every feature or kernel matrix recomputed with the test and validation pairs zeroed equals the one used (masking check)"
+  - "training negatives exclude training positives and the sampler never reads test or validation labels"
+
+metrics: [AUROC, AUPR, accuracy, precision, recall, specificity, F1, MCC, confusion matrix, ROC curve]
+comparisons: ["M3 - M1", "M2 - M1", "M3 - M2 in every run (paired bootstrap over host groups, 1000 resamples)"]
+reporting_rules:
+  - "every row is shown next to the baseline rows computed under the same protocol"
+  - "every table states its protocol (split and negatives) in the caption"
+  - "no run is repeated after seeing its result, except to fix a failed assertion; any rerun is logged here"
+  - "numbers from leaking features are never presented as model performance"
+
+leak_audit_control:   # optional, labelled a control, never a result
+  what: "same as run C but with similarity kernels built from ALL labels (as in the released MTGCDA files)"
+  purpose: "show how much a label leak adds; not a comparable result"
+
+S0_threshold_note: "S0 threshold metrics use the model's own boundary (logit 0) because validation predictions were not saved in the frozen strict runs; runs B, A and C use the validation-chosen threshold"
+
+run_log:   # one line per executed run; a rerun is only allowed to fix a failed assertion and must be logged here
+     S0: "frozen strict-protocol results (3 seeds x 5 folds x M1, M2, M3); reported with the ladder metrics, not rerun"
+     B: "executed once (3 seeds x 5 folds x M1, M2, M3), no reruns; run on the uniform_pair definitions above, which have not changed since (C2, kernel baselines and pair-level definitions were added afterwards and do not affect B)"

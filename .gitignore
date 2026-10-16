@@ -1,0 +1,7 @@
+﻿data/
+*.npz
+*.npy
+*.zip
+.ipynb_checkpoints/
+__pycache__/
+models/
