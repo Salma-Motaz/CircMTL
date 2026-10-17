@@ -132,7 +132,6 @@ enhancement_round_1:   # written before any model of this round is trained; the 
   reporting: "every result of this round is reported whatever its sign; the main results stay M1-M3"
   not_included: "association-derived features (GIP, kernels, random walk on the association network); miRNA-disease edges (the registered gate failed); extra entity types (TF, compounds); other encoders (HGT was run and matched the R-GCN)"
 
-
 enhancement_round_1_outcome:   # written after all registered runs of the round; the registered rules above are unchanged
   sim: "no gain: S0 condition met, run A condition not met (M1 +0.0039, M2 +0.0040, M3 -0.0002, every 97.5% interval includes 0)"
   depth: "helps by the registered rule: S0 condition met (no effect, all intervals include 0), run A condition met through the single-task model only (M1 +0.0091 [+0.0019, +0.0164]); M3 does not improve significantly (+0.0020 [-0.0046, +0.0085]); the M3 - M1 difference inside the 3-layer arm is +0.0003 [-0.0065, +0.0071] against +0.0075 [+0.0011, +0.0143] with 2 layers"
@@ -151,10 +150,6 @@ enhancement_round_1_c2_outcome:   # written after the C2 runs; the registered ru
   sim: "exploratory, not planned: all three models are higher with the similarity edges in C2 (M1 +0.0122, M2 +0.0089, M3 +0.0074, every 97.5% interval excludes 0) although run A showed no gain; the best sim model (M3 0.7966) is still below the two-feature rule of run C2 (0.824); registered verdict unchanged"
   reading: "the multi-task difference in C2 is +0.0082 (main), +0.0088 (depth) and +0.0034 (sim); in run A it was +0.0075, +0.0003 and +0.0034; it is small, never above +0.009, and depends on protocol and encoder"
 
-run_X_plan:   # written before the external data are scored, as the work order requires
-  models: "M1, M2, M3 as in the main results (2 layers) and the same three models with the 3-layer encoder of the depth arm (the only arm that met its rule); the sim arm is not carried forward"
-  external_data_rule: "the external pairs have not been scored or inspected for results; they are scored once for exactly these six models"
-
 work_order:   # revised before enhancement_round_1 or run X is executed; M1-M3 stay the main results throughout
   step_1: "enhancement_round_1 (registered above): graph and depth arms, S0 then run A, reported whatever the sign; time-boxed to the registered stop rule"
   step_2: "run X external test, only after step 1 is finished, so the external pairs are used once for the final list of models; the list (M1, M2, M3 and any arm that met its rule) is written here before X is run"
@@ -162,6 +157,33 @@ work_order:   # revised before enhancement_round_1 or run X is executed; M1-M3 s
   step_4: "writing, after the three steps above"
   external_data_rule: "the external pairs are not scored or inspected for results during step 1"
   audits_done: "code audits of GEHGAN, CMCSG, GGCDA, HMCDA, CLCDA, MTGCDA and circ2DGNN are finished and recorded in baseline_code_audit; nothing further is planned"
+
+run_X_plan:   # written before the external data are scored, as the work order requires
+  models: "M1, M2, M3 as in the main results (2 layers) and the same three models with the 3-layer encoder of the depth arm (the only arm that met its rule); the sim arm is not carried forward"
+  external_data_rule: "the external pairs have not been scored or inspected for results; they are scored once for exactly these six models"
+
+run_X_protocol:   # written before any external pair is scored; the model list is in run_X_plan; counts and file hashes are added to run_log after harmonisation and before scoring
+  source: "circRNADisease v2.0 circRNA-disease pairs (the external source registered in runs.X); the file name, download date and sha256 are recorded in run_log before scoring"
+  inclusion: "human circRNAs with a circBase id or genomic coordinates that map to a sequence; circRNA absent from dataset_v1 (by circBase id and by genomic coordinates); disease that maps to one of the 207 dataset_v1 diseases (by name or MeSH id), because the models cannot score a disease without training edges; pair absent from dataset_v1; duplicates removed"
+  subsets: "primary: all included pairs; secondary, descriptive: pairs whose circRNA host gene is also absent from dataset_v1 (the strict-external setting)"
+  inputs: "RNA-FM layer 12 overlap embedding and log10 length computed exactly as for dataset_v1 (06_embeddings); ENCORI miRNA and RBP edges for the external circRNAs built by the same pipeline as for dataset_v1; external circRNAs are added as new nodes; no external pair enters any graph, loss or selection"
+  training: "each of the six models is trained on all dataset_v1 pairs for 10 seeds, with the pair-level 20% random validation split (seed rule of pair_level_split), early stopping on validation AUROC and the auxiliary weight chosen on validation; the external data play no role in selection"
+  negatives: "frozen once before scoring and shared by all models: degree_matched (same circRNA, disease drawn by dataset_v1 training degree) and uniform_pair (circRNA uniform over the included external circRNAs, disease uniform over the 207), never a known positive in dataset_v1 or in the external file"
+  floors: "disease_degree and shortcut_logit from dataset_v1 training pairs, shown beside every model; the CircDis score file is compared on the same pairs where it has a score"
+  metrics: "AUROC, AUPR and F1 at the validation-chosen threshold, mean over seeds; paired bootstrap over external host groups, 1000 resamples, 95% intervals, for M3 - M1 and M3_3layer - M1_3layer"
+  decision: "none: every result is reported whatever its sign; the number of included pairs and circRNAs is recorded first and limits what the multi-task contrast can show"
+  order: "obtain file, harmonise, record counts and hashes, commit, embed sequences, build edges, freeze negatives, commit, train, score once"
+
+run_X_protocol_amendment:   # written before the external file is harmonised; no external pair has been scored
+  file: "circRNADisese_V2.csv from the third-party repository github.com/amirhfro/circpac_data (6,792 entries; the published circRNADisease v2.0 abstract reports 6,998); the file name, sha256 and download date are recorded in run_log, and it is compared with the official download from the database site if that download is available"
+  species: "human entries only (6,418 of 6,792)"
+  circrna_identity: "an entry is usable only if its circrna_id is a circBase-style id (hsa_circ_ followed by digits) found in the circBase annotation file, which also gives its coordinates; entries with id '-' (2,927 human entries, mostly gene-based names such as hsa_circ_CORO1C that do not identify one circRNA) are dropped; recovery from the synonyms column is not used because it would add only 25 entries"
+  novelty: "a circRNA counts as absent from dataset_v1 if neither its circBase id nor its genomic coordinates (start as given and start + 1) match a dataset_v1 circRNA"
+  disease_mapping: "exact match, after lower-casing and removing punctuation, between the file's disease_details string and a dataset_v1 disease name; no parent or child mapping; unmatched entries are dropped and counted"
+  stand_in_estimate: "using the CircR2Disease v2.0 files as an upper-bound stand-in for dataset_v1: 6,418 human entries, 3,491 with a circBase-style id, 3,240 found in circBase, 889 entries on 753 circRNAs absent from CircR2Disease, 784 entries on 664 circRNAs whose disease matches a CircR2Disease disease, 725 unique pairs; the exact counts with dataset_v1 and its 207 diseases are computed by Cell 40 and recorded in run_log before scoring"
+  partner_edges: "miRNA and RBP edges for the external circRNAs must come from the same ENCORI pipeline as dataset_v1; the circBank miRNA file in the same repository is a different source and is not used as a substitute; if the ENCORI edges cannot be built, M2 and M3 are reported with their partner-edge coverage stated"
+  primary_reading: "degree_matched is the primary test-negative scheme and uniform_pair is secondary; both are reported beside the disease_degree floor, because the included positives concentrate on 94 of the 207 diseases (24.2% of the pairs in three diseases), which makes uniform negatives easy; chosen after the counting and before any scoring"
+  sequence_rule: "an included external circRNA must also have a sequence in the circBase FASTA used for dataset_v1; any that does not is dropped and counted before embedding"
 
 run_log:   # one line per executed run; a rerun is only allowed to fix a failed assertion and must be logged here
   S0: "frozen strict-protocol results (3 seeds x 5 folds x M1, M2, M3); reported with the ladder metrics, not rerun"
@@ -188,5 +210,5 @@ run_log:   # one line per executed run; a rerun is only allowed to fix a failed 
   round1_A_depth: "arm depth (3-layer R-GCN), protocol A: M1, M2, M3 x 10 seeds x 5 folds (150 prediction files), executed once to completion, no reruns; output hashes in results_manifest_round1_A_depth.txt; comparison with the main run A (Cell 36): M1 depth - M1 +0.0091 [+0.0019, +0.0164], M2 depth - M2 +0.0052 [-0.0024, +0.0127], M3 depth - M3 +0.0020 [-0.0046, +0.0085]; M3 - M1 inside the arm +0.0003 [-0.0065, +0.0071]; registered run A condition met (through M1 only)"
   round1_C2_depth: "arm depth (3-layer R-GCN), protocol C2 (planned): M1, M2, M3 x 10 seeds x 5 folds (150 prediction files), executed once to completion, no reruns; output hashes in results_manifest_round1_C2_depth.txt; comparison with the main run C2 (Cell 36 v2): M1 depth - M1 -0.0109 [-0.0141, -0.0078], M2 depth - M2 -0.0122 [-0.0154, -0.0090], M3 depth - M3 -0.0104 [-0.0129, -0.0074]; M3 - M1 inside the arm +0.0088 [+0.0057, +0.0120]; supplementary confirmation not met (all three models significantly lower)"
   round1_C2_sim: "arm sim, protocol C2 (NOT planned: the registered C2 plan covered the depth arm only; the run was made anyway and is reported as exploratory): M1, M2, M3 x 10 seeds x 5 folds (150 prediction files), executed once to completion, no reruns; output hashes in results_manifest_round1_C2_sim.txt; M1 sim - M1 +0.0122 [+0.0091, +0.0155], M2 sim - M2 +0.0089 [+0.0056, +0.0122], M3 sim - M3 +0.0074 [+0.0040, +0.0108]; M3 - M1 inside the arm +0.0034 [+0.0011, +0.0059]; the registered verdict is unchanged and the sim arm is not carried to run X"
-
+  run_X_funnel: "external file circRNADisese_V2.csv (sha256 90ff85f15c1a1ce97d6b9ac294ed3cda896bf6ec8e48198fd41c3897494b9354, 6792 entries); counting only, nothing scored; human entries 6418; circBase-style id 3491; found in circBase 3240; circRNAs absent from dataset_v1 766 (913 entries); disease maps to dataset_v1 777 entries; primary set 711 pairs on 652 circRNAs; secondary (host gene absent too) 480 pairs on 443 circRNAs; included pairs file sha256 c440fb24e3d34be025e4c26b7f90e3560c361d155177c44f02b4574db33befec"
 
