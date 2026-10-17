@@ -137,7 +137,7 @@ enhancement_round_1_clarification:   # written after the sim arm's S0 result and
   stop_rule_reading: "'the round then ends' means after the registered arms (sim, depth, and combined only if both gain) have each been run on S0 and then on run A; no arm other than these three is ever added"
   cells_used: "Cell 33 (sim, S0, run once); Cells 35 and 36 for every other arm and protocol"
 
-  
+
 work_order:   # revised before enhancement_round_1 or run X is executed; M1-M3 stay the main results throughout
   step_1: "enhancement_round_1 (registered above): graph and depth arms, S0 then run A, reported whatever the sign; time-boxed to the registered stop rule"
   step_2: "run X external test, only after step 1 is finished, so the external pairs are used once for the final list of models; the list (M1, M2, M3 and any arm that met its rule) is written here before X is run"
@@ -166,6 +166,8 @@ run_log:   # one line per executed run; a rerun is only allowed to fix a failed 
   round1_sim_edges: "enhancement round 1, arm sim: static relations built once by Cell 31 from RNA-FM cosine similarity (5 nearest circRNAs; 6,331 undirected edges, sha256 prefix fce8e4d0cf4665ca) and MeSH similarity (3 most similar diseases, positive similarity only; 421 edges, sha256 prefix 89df82f8956b7c26; 200 of 207 diseases have an edge); no labels used"
   round1_smoke_test: "diagnostic only (Cell 32): one strict fold (seed 0, fold 0), M1 main and M1 sim trained once each to check the pipeline; relation types 6 and 8; inference-graph edges 2,782 and 16,286; validation AUROC only (0.540 and 0.534), no test score printed; not a result"
   round1_S0_sim: "arm sim, protocol S0: M1, M2, M3 x 3 seeds x 5 folds (45 prediction files; 464 s), executed once to completion, no reruns; output hashes in results_manifest_round1_S0_sim.txt; comparison with the main S0 results (Cell 34): M1 sim - M1 +0.0028, M2 sim - M2 +0.0056, M3 sim - M3 -0.0014, all 97.5% intervals include 0; M3 - M1 inside the arm +0.0050 [-0.0046, +0.0145]; registered S0 condition met"
-  
+  round1_S0_depth: "arm depth (3-layer R-GCN, main graph), protocol S0: M1, M2, M3 x 3 seeds x 5 folds (45 prediction files; 495 s), executed once to completion, no reruns; output hashes in results_manifest_round1_S0_depth.txt; comparison with the main S0 results (Cell 36): M1 depth - M1 +0.0065, M2 depth - M2 +0.0030, M3 depth - M3 -0.0013, all 97.5% intervals include 0; M3 - M1 inside the arm +0.0014 [-0.0105, +0.0126]; registered S0 condition met"  
+
+
 
 
