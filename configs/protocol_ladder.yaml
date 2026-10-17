@@ -90,6 +90,20 @@ shuffled_auxiliary_control_outcome:   # written after the three runs; the regist
   C2: "M3 - M3_shuf +0.0031 [+0.0007, +0.0054]; M3_shuf - M1 +0.0051 [+0.0031, +0.0072]; M3 - M1 +0.0082 [+0.0058, +0.0106]; 37% of the gain lost when shuffled; rule: CONTENT USED"
   reading: "the rule is met in 1 of 3 runs (C2); about two thirds of the multi-task gain in A and C2 persists when the auxiliary edges are shuffled, so it is mainly a generic effect of the extra edges and loss; the content-specific part is about 0.003 AUROC, which is the size of the run-to-run variation measured in run B"
 
+baseline_code_audit:   # facts read from the released repositories (default branch, shallow clone); no baseline has been run yet
+  GEHGAN: "repository holds only a README (no code, no data); cannot be run; reported numbers only"
+  CMCSG: "repository link given in the paper could not be cloned; cannot be run; reported numbers only"
+  GGCDA: "repository holds an inference script that loads a pickled checkpoint from a hard-coded personal path; it contains no model class, no training script, and not the similarity and association matrices the script loads; the checkpoint's training data are unknown; cannot be run as released"
+  HMCDA: "code and data present on an old stack (Python 3.6, PyTorch 1.2, DGL 0.3.1, absolute Windows paths); metapath instances are built from training pairs only; early stopping on validation loss; negatives uniform over all non-positive pairs; node features are one-hot identities (transductive); the notebook processes one of five provided splits"
+  CLCDA: "code and data present, including an incremental test set based on MNDR and negative test sets; not yet audited"
+  MTGCDA: "audited earlier: kernels and graph from all labels; checkpoint and threshold chosen on the test fold"
+
+encoder_dev_sweep:   # diagnostic only, synthetic planted labels; real labels were never used
+  task_1: "M2 on the planted partner task (seed 0, 5 folds): V0 0.603; V3 lr 3e-3 0.643; V1 full relation weights 0.625; V7 RNA-FM 16 components 0.651; ceiling 0.771; M1 0.565"
+  task_2: "second planted projection: M1 0.575; V0 0.606; V3 0.605; V1 0.602; V1+V3 0.602; V7 0.634"
+  rule: "a variant is confirmed if it beats V0 by 0.03 or more on both tasks with its lowest fold above V0's mean"
+  outcome: "no variant confirmed (V3 +0.040 then -0.000, a result that did not replicate; V7 +0.048 then +0.028, consistent in sign but below the threshold and with a low fold); no tuned encoder is carried to the real labels; M1-M3 results remain the final ones"
+
 run_log:   # one line per executed run; a rerun is only allowed to fix a failed assertion and must be logged here
   S0: "frozen strict-protocol results (3 seeds x 5 folds x M1, M2, M3); reported with the ladder metrics, not rerun"
   frozen_pair: "pair-level folds, frozen negatives (A, C, C2) and baseline floors created once (10 seeds x 5 folds); all leak and masking assertions passed; no training"
@@ -102,3 +116,16 @@ run_log:   # one line per executed run; a rerun is only allowed to fix a failed 
   shuffled_aux_A: "M3_shuf executed once to completion (10 seeds x 5 folds; 50 prediction files; 1,532 s), no reruns; output hashes in results_manifest_A_M3shuf.txt"
   shuffled_aux_C: "M3_shuf executed once to completion (10 seeds x 5 folds; 50 prediction files; 2,005 s), no reruns; output hashes in results_manifest_C_M3shuf.txt"
   shuffled_aux_C2: "M3_shuf executed once to completion (10 seeds x 5 folds; 50 prediction files; 1,729 s), no reruns; output hashes in results_manifest_C2_M3shuf.txt"
+  aux_channel_control: "diagnostic only: planted partner-set label (Cell 24; M1 0.565, M2 0.604, M3 0.588; seed 0, 5 folds) and its ceiling (Cell 25: logistic regression 0.771, shared-partner vote 0.583); not a result; each executed once"
+  simple_learner_reference: "diagnostic only: softmax regression on the real labels, strict protocol, seed 0, 5 folds, degree-matched negatives (Cell 26; fits not converged within 300 iterations): partner sets 0.513, RNA-FM features + length 0.506, both 0.508; executed once; not a result"
+  shuffled_aux_A: "M3_shuf executed once to completion (10 seeds x 5 folds; 50 prediction files), no reruns; output hashes in results_manifest_A_M3shuf.txt"
+  shuffled_aux_C: "M3_shuf executed once to completion (10 seeds x 5 folds; 50 prediction files), no reruns; output hashes in results_manifest_C_M3shuf.txt"
+  shuffled_aux_C2: "M3_shuf executed once to completion (10 seeds x 5 folds; 50 prediction files), no reruns; output hashes in results_manifest_C2_M3shuf.txt"
+  aux_channel_control: "diagnostic only: planted partner-set label (Cell 24; M1 0.565, M2 0.604, M3 0.588; seed 0, 5 folds) and its ceiling (Cell 25: logistic regression 0.771, shared-partner vote 0.583); not a result; each executed once"
+  simple_learner_reference: "diagnostic only: softmax regression on the real labels, strict protocol, seed 0, 5 folds, degree-matched negatives (Cell 26): partner sets 0.513 (0.487-0.547), RNA-FM features + length 0.506, both 0.508; the partner-set row was rerun with 1000 iterations and gave the same result; executed twice; not a result"
+  trivial_sequence_reference: "diagnostic only (Cell 28): softmax regression on trivial sequence features, real labels, strict protocol, seed 0, 5 folds, degree-matched negatives: log length 0.513 (0.479-0.549), GC + log length 0.514, 3-mer + GC + log length 0.504; executed once; not a result"
+  gd_check: "Cell 30 (the live graph compared with a freshly loaded one: edges, known-edge codes, circRNA features) confirmed that gd was the real graph before the real-label results of Cells 26 and 28 were used"
+  notebook_state_repair: "diagnostic cells 25, 28 and 29 overwrote the notebook names D, F and cfg; the names were restored and the three cells corrected; no reported number depended on an overwritten name (every cell that would have used a wrong value stopped with an error); Cell 29 was rerun after the repair"
+
+
+
