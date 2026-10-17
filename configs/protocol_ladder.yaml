@@ -72,7 +72,7 @@ leak_audit_control:   # optional, labelled a control, never a result
   purpose: "show how much a label leak adds; not a comparable result"
   evaluated_as: "kernel-propagation baselines (kernel_circ, kernel_dis, kernel_both) with the label matrix built from ALL known pairs, scored on the frozen pair-level test pairs of A, C and C2, next to the same baselines from training pairs only; no neural model is trained; reported as a control, never as performance"
 
-S0_threshold_note: "S0 threshold metrics use the model's own boundary (logit 0) because validation predictions were not saved in the frozen strict runs; runs B, A and C use the validation-chosen threshold"
+S0_threshold_note: "S0 threshold metrics use the model's own boundary (logit 0) because validation predictions were not saved in the frozen strict runs; runs B, A, C and C2 use the validation-chosen threshold"
 
 shuffled_auxiliary_control:
   purpose: "test whether the content of the miRNA and RBP edges, and not just their presence or the extra loss, accounts for the small multi-task gain (M3 - M1)"
@@ -95,14 +95,50 @@ baseline_code_audit:   # facts read from the released repositories (default bran
   CMCSG: "repository link given in the paper could not be cloned; cannot be run; reported numbers only"
   GGCDA: "repository holds an inference script that loads a pickled checkpoint from a hard-coded personal path; it contains no model class, no training script, and not the similarity and association matrices the script loads; the checkpoint's training data are unknown; cannot be run as released"
   HMCDA: "code and data present on an old stack (Python 3.6, PyTorch 1.2, DGL 0.3.1, absolute Windows paths); metapath instances are built from training pairs only; early stopping on validation loss; negatives uniform over all non-positive pairs; node features are one-hot identities (transductive); the notebook processes one of five provided splits"
-  CLCDA: "code and data present, including an incremental test set based on MNDR and negative test sets; not yet audited"
+  CLCDA: "code and data present; the shipped node-feature matrix contains the circRNA-disease association block (RWR-scaled): the raw feature entry separates a random 20% of held-out known pairs from all 1,191,220 unknown pairs with AUROC 1.000 and no model, so the features contain the test labels; the negative test set is all unknown pairs (1:789 against the held-out positives); train.py uses one random split, a fixed 200 epochs and no validation set; the released pipeline cannot give a fair baseline without rebuilding the features per fold"
   MTGCDA: "audited earlier: kernels and graph from all labels; checkpoint and threshold chosen on the test fold"
+  circ2DGNN: "code and data present (DGL 1.1.1, PyTorch 1.12); test positive edges are removed from the training graph and the reported epoch is the last one, so there is no selection on the test set; training negatives avoid every known positive including the test positives (a small use of test labels); negatives are uniform random diseases over 2,655 diseases of which only 386 have a training pair, so 86.8% of test negatives involve a disease with no training positive against 1.6% of test positives; node inputs are fixed random vectors; one split (seed 2023), no repeats"
+
+reported_baseline_numbers:   # cited from the papers, not rerun; every value is "reported, not comparable" to this project's protocols
+  GGCDA: "Biomolecules 2022, 12, 932; random pair-level 5-fold CV repeated 10 times, equal number of random unknown pairs as negatives; CircR2Disease (590 circRNAs, 88 diseases, 651 pairs) AUC 0.9625, AUPR 0.9422, accuracy 0.9172, precision 0.8700, recall 0.9822, F1 0.9224; larger dataset (called DATA) AUC 0.9485, AUPR 0.9266, F1 0.9150; independent MNDR test AUC 0.8227, AUPR 0.7836, accuracy 0.7832, precision 0.8173, recall 0.7651, F1 0.7903; features include Gaussian similarity and random walk with restart on the association network; the released code is inference-only (audited), so it was not rerun"
+  KGRACDA: "IEEE/ACM TCBB 2024 (numbers taken from the bioRxiv preprint); 5-fold CV; dataset 1 (over 300 circRNAs, 79 diseases) AUC 0.9312, AUPR 0.0359, accuracy 0.4988, recall 0.9291; dataset 3 (514 circRNAs, 62 diseases) AUC 0.8602, AUPR 0.0609, accuracy 0.4978, recall 0.8450; dataset 2 (561 circRNAs, 190 diseases) is reported only in figures and the supplement; accuracy near 0.5 with AUPR of 0.04-0.06 suggests ranking against all unknown pairs (inference)"
+  GIT-DSP: "Biomolecules 2025, 15(2):234; AUC 0.9381 (330 circRNAs, 79 diseases), 0.8728 (514 circRNAs, 62 diseases), 0.7390 (561 circRNAs, 190 diseases); AUPR 0.0108 on the largest dataset; same datasets as KGRACDA but numbered differently (GIT-DSP dataset 2 is KGRACDA dataset 3, GIT-DSP dataset 3 is KGRACDA dataset 2)"
+  MTGCDA: "ACS Omega 2025, 10, 43187-43200; CircR2Disease 5-fold CV AUC 0.9756, AUPR 0.9599, F1 95.13%, accuracy 94.98%, recall 98.03%, specificity 91.94%, precision 92.96%; second dataset (Circ2Disease) 5-fold CV AUC 0.9305, AUPR 0.9045, F1 90.09%; the released code was audited earlier and leaks"
+  GEHGAN: "Computational Biology and Chemistry 110 (2024) 108079; 5-fold CV, balanced negatives; dataset 1 (599 circRNAs, 88 diseases, 650 pairs) AUC 0.9931, AUPR 0.9928, F1 0.9046; dataset 2 (2,738 circRNAs, 275 diseases, 3,439 pairs) AUC 0.9829, AUPR 0.9815, F1 0.8616; the repository holds only a README, so it was not rerun"
+  STRCDA: "Int. J. Mol. Sci. 2026, 27(12), 5260; CircR2Disease, 5-fold CV AUC 0.9771 +/- 0.0156, AUPR 0.9826 +/- 0.0100, F1 92.48% +/- 1.44%, accuracy 92.34% +/- 1.38%, MCC 84.81%; fused similarity profiles, random walk with restart, sparse dual-branch graph autoencoder, XGBoost; the code link in the paper (github.com/591286260/STRCDA) could not be cloned from the assistant's workspace, so it is not audited"
+  GGAECDA: "Computational Biology and Chemistry 99 (2022) 107722; CircR2Disease, 5-fold CV AUC 0.9359; graph attention network and random walk with restart features, two graph autoencoders; no code link found in the paper text"
+  circ2DGNN: "IEEE/ACM TCBB 2024, 21(6); random 90/10 split of the known pairs, 5-fold CV inside the training part for hyperparameters only, one test set, 1:1 negatives drawn for the same circRNAs; test AUC 0.9779, AUPR 0.9803, F1 0.9309; ablation: without the non-circRNA, non-disease entities AUC 0.9583, AUPR 0.9573, F1 0.9191; without the similarity edges AUPR 0.9558; node inputs are random vectors (no sequence features); on the paper's own shipped test set (706 positives, 706 negatives) a rule that only counts each disease's training positives scores AUROC 0.9797 and AUPR 0.9793, so the reported numbers do not exceed a no-model popularity floor; code at github.com/CEN-KL/circ2DGNN"
+  circDis: "predictions released with CircR2Disease v2.0 (file title: candidate associations predicted by the CircDis method): a score matrix of 1,577 circRNAs by 202 diseases with NA in 2099 cells (presumably the known pairs), no code, no reported AUROC or AUPR found; the v2.0 paper in the uploads does not mention the name CircDis; because the known pairs have no scores it cannot be benchmarked on this project's folds; it could only be compared on pairs outside CircR2Disease (run X)"
 
 encoder_dev_sweep:   # diagnostic only, synthetic planted labels; real labels were never used
   task_1: "M2 on the planted partner task (seed 0, 5 folds): V0 0.603; V3 lr 3e-3 0.643; V1 full relation weights 0.625; V7 RNA-FM 16 components 0.651; ceiling 0.771; M1 0.565"
   task_2: "second planted projection: M1 0.575; V0 0.606; V3 0.605; V1 0.602; V1+V3 0.602; V7 0.634"
   rule: "a variant is confirmed if it beats V0 by 0.03 or more on both tasks with its lowest fold above V0's mean"
   outcome: "no variant confirmed (V3 +0.040 then -0.000, a result that did not replicate; V7 +0.048 then +0.028, consistent in sign but below the threshold and with a low fold); no tuned encoder is carried to the real labels; M1-M3 results remain the final ones"
+
+enhancement_round_1:   # written before any model of this round is trained; the M1-M3 results stay the main results
+  question: "does a denser, more heterogeneous label-free graph, or a deeper encoder, raise disease AUROC, and does it change the M3 - M1 difference?"
+  arms:
+    sim: "add two static relation types to every graph (training, validation and inference), never decoded and outside the 70/30 split: circRNA-circRNA edges between each circRNA and its 5 nearest circRNAs by cosine similarity of the RNA-FM embedding, and disease-disease edges between each disease and its 3 most similar diseases by MeSH similarity (Wang, attenuation 0.5); both symmetrised; the number of R-GCN relation types rises from 6 to 8"
+    depth: "the main graph with a 3-layer R-GCN instead of 2 (all other settings unchanged)"
+    combined: "both changes; run only if both arms above show a gain"
+  models: "M1, M2 and M3 are each rerun with the arm's change, so the multi-task comparison stays controlled inside every arm"
+  fixed_in_advance: "k = 5 and k = 3, the layer count and every other setting are fixed here and are not tuned"
+  uses_no_labels: "the added edges come from sequence embeddings and the MeSH ontology only; no association-derived feature, no kernel from the label matrix, no random walk on the association network"
+  protocols: "S0 first (3 seeds x 5 folds), then pair-level run A (10 seeds x 5 folds); run C2 only for an arm that shows a gain in A"
+  comparisons: "arm minus main for the same model (M1, M3), and M3 - M1 inside each arm; paired bootstrap over host groups, 1000 resamples, 97.5% intervals (two arms)"
+  rule: "an arm helps if the 97.5% interval of (M3_arm - M3) or (M1_arm - M1) is positive and excludes 0 in run A and is not significantly negative in S0; otherwise the arm is reported as no gain"
+  stop_rule: "if an arm shows no gain in S0, run A is still run once for that arm; the round then ends whatever the result; no further arm is added after seeing results"
+  reporting: "every result of this round is reported whatever its sign; the main results stay M1-M3"
+  not_included: "association-derived features (GIP, kernels, random walk on the association network); miRNA-disease edges (the registered gate failed); extra entity types (TF, compounds); other encoders (HGT was run and matched the R-GCN)"
+
+work_order:   # revised before enhancement_round_1 or run X is executed; M1-M3 stay the main results throughout
+  step_1: "enhancement_round_1 (registered above): graph and depth arms, S0 then run A, reported whatever the sign; time-boxed to the registered stop rule"
+  step_2: "run X external test, only after step 1 is finished, so the external pairs are used once for the final list of models; the list (M1, M2, M3 and any arm that met its rule) is written here before X is run"
+  step_3: "comparison table for Objectives 7 and 8, finalised last: this project's frozen rows (and any extension row) beside cited published numbers, no published model rebuilt; the cited columns may be filled in earlier"
+  step_4: "writing, after the three steps above"
+  external_data_rule: "the external pairs are not scored or inspected for results during step 1"
+  audits_done: "code audits of GEHGAN, CMCSG, GGCDA, HMCDA, CLCDA, MTGCDA and circ2DGNN are finished and recorded in baseline_code_audit; nothing further is planned"
 
 run_log:   # one line per executed run; a rerun is only allowed to fix a failed assertion and must be logged here
   S0: "frozen strict-protocol results (3 seeds x 5 folds x M1, M2, M3); reported with the ladder metrics, not rerun"
@@ -117,15 +153,9 @@ run_log:   # one line per executed run; a rerun is only allowed to fix a failed 
   shuffled_aux_C: "M3_shuf executed once to completion (10 seeds x 5 folds; 50 prediction files; 2,005 s), no reruns; output hashes in results_manifest_C_M3shuf.txt"
   shuffled_aux_C2: "M3_shuf executed once to completion (10 seeds x 5 folds; 50 prediction files; 1,729 s), no reruns; output hashes in results_manifest_C2_M3shuf.txt"
   aux_channel_control: "diagnostic only: planted partner-set label (Cell 24; M1 0.565, M2 0.604, M3 0.588; seed 0, 5 folds) and its ceiling (Cell 25: logistic regression 0.771, shared-partner vote 0.583); not a result; each executed once"
-  simple_learner_reference: "diagnostic only: softmax regression on the real labels, strict protocol, seed 0, 5 folds, degree-matched negatives (Cell 26; fits not converged within 300 iterations): partner sets 0.513, RNA-FM features + length 0.506, both 0.508; executed once; not a result"
-  shuffled_aux_A: "M3_shuf executed once to completion (10 seeds x 5 folds; 50 prediction files), no reruns; output hashes in results_manifest_A_M3shuf.txt"
-  shuffled_aux_C: "M3_shuf executed once to completion (10 seeds x 5 folds; 50 prediction files), no reruns; output hashes in results_manifest_C_M3shuf.txt"
-  shuffled_aux_C2: "M3_shuf executed once to completion (10 seeds x 5 folds; 50 prediction files), no reruns; output hashes in results_manifest_C2_M3shuf.txt"
-  aux_channel_control: "diagnostic only: planted partner-set label (Cell 24; M1 0.565, M2 0.604, M3 0.588; seed 0, 5 folds) and its ceiling (Cell 25: logistic regression 0.771, shared-partner vote 0.583); not a result; each executed once"
   simple_learner_reference: "diagnostic only: softmax regression on the real labels, strict protocol, seed 0, 5 folds, degree-matched negatives (Cell 26): partner sets 0.513 (0.487-0.547), RNA-FM features + length 0.506, both 0.508; the partner-set row was rerun with 1000 iterations and gave the same result; executed twice; not a result"
   trivial_sequence_reference: "diagnostic only (Cell 28): softmax regression on trivial sequence features, real labels, strict protocol, seed 0, 5 folds, degree-matched negatives: log length 0.513 (0.479-0.549), GC + log length 0.514, 3-mer + GC + log length 0.504; executed once; not a result"
   gd_check: "Cell 30 (the live graph compared with a freshly loaded one: edges, known-edge codes, circRNA features) confirmed that gd was the real graph before the real-label results of Cells 26 and 28 were used"
   notebook_state_repair: "diagnostic cells 25, 28 and 29 overwrote the notebook names D, F and cfg; the names were restored and the three cells corrected; no reported number depended on an overwritten name (every cell that would have used a wrong value stopped with an error); Cell 29 was rerun after the repair"
 
-
-
+  
