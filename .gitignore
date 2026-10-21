@@ -3,7 +3,8 @@
 data/
 models/
 notebooks_archive/
-notebooks/
+notebooks/odd/
+notebooks/New/
 
 # Python
 __pycache__/
