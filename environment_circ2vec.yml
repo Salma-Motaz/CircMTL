@@ -1,0 +1,11 @@
+
+name: circ2vec_legacy
+channels:
+  - conda-forge
+dependencies:
+  - python=3.8
+  - pip
+  - numpy
+  - pandas
+  - pip:
+      - gensim==3.8.3
