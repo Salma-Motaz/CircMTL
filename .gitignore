@@ -1,10 +1,16 @@
-﻿data/
-*.npz
-*.npy
-*.zip
-.ipynb_checkpoints/
-__pycache__/
+﻿@"
+# Data, weights, archives (too large / external)
+data/
 models/
-models/
-*.egg-info/
 notebooks_archive/
+notebooks/
+
+# Python
+__pycache__/
+*.pyc
+*.egg-info/
+.ipynb_checkpoints/
+
+# Environment (contains a local path)
+environment.lock.yml
+"@ | Set-Content .gitignore -Encoding utf8
